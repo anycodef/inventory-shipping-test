@@ -1,0 +1,107 @@
+generator client {
+  provider = "prisma-client-js"
+}
+
+datasource db {
+  provider = "postgresql"
+  url      = env("DATABASE_URL")
+}
+
+// Modelo para Departamentos del país.
+model Departamento {
+  id         Int         @id @default(autoincrement())
+  nombre     String      @unique @db.VarChar(50)
+  provincias Provincia[]
+
+  @@map("departamento")
+}
+
+// Modelo para Provincias de un departamento.
+model Provincia {
+  id              Int          @id @default(autoincrement())
+  nombre          String       @db.VarChar(50)
+  id_departamento Int
+  departamento    Departamento @relation(fields: [id_departamento], references: [id])
+  distritos       Distrito[]
+
+  @@unique([nombre, id_departamento])
+  @@map("provincia")
+}
+
+// Modelo para Distritos de una provincia.
+model Distrito {
+  id           Int         @id @default(autoincrement())
+  nombre       String      @db.VarChar(50)
+  id_provincia Int
+  provincia    Provincia   @relation(fields: [id_provincia], references: [id])
+  direcciones  Direccion[]
+
+  @@unique([nombre, id_provincia])
+  @@map("distrito")
+}
+
+// Modelo para coordenadas geográficas (latitud, longitud).
+model Geopoint {
+  id        Int        @id @default(autoincrement())
+  latitud   Decimal
+  longitud  Decimal
+  direccion Direccion? // Relación opcional uno a uno
+
+  @@map("geopoint")
+}
+
+// Modelo para las direcciones físicas.
+model Direccion {
+  id          Int       @id @default(autoincrement())
+  referencia  String    @db.Text
+  id_distrito Int
+  distrito    Distrito  @relation(fields: [id_distrito], references: [id])
+  id_geopoint Int       @unique // Un Geopoint por Dirección
+  geopoint    Geopoint  @relation(fields: [id_geopoint], references: [id])
+  local       Local?    // Relación opcional uno a uno
+
+  @@map("direccion")
+}
+
+// Modelo para los tipos de locales (e.g., Almacén, Tienda).
+model TipoLocal {
+  id          Int     @id @default(autoincrement())
+  nombre      String  @unique @db.VarChar(15)
+  descripcion String? @db.Text
+  locales     Local[]
+
+  @@map("tipo_local")
+}
+
+// Modelo para los locales físicos (tiendas, almacenes).
+model Local {
+  id               Int       @id @default(autoincrement())
+  nombre           String    @unique @db.VarChar(30)
+  imagen           String? // URL de la imagen del local
+  estado           String    @default("INACTIVO") @db.VarChar(10)
+  id_direccion     Int       @unique // Una Dirección por Local
+  direccion        Direccion @relation(fields: [id_direccion], references: [id])
+  id_tipo_local    Int
+  tipoLocal        TipoLocal @relation(fields: [id_tipo_local], references: [id])
+  
+  // Relaciones Muchos a Muchos para Almacén ↔ Tiendas
+  almacenesQueAbastecen AlmacenTienda[] @relation("AlmacenAbastece") // Si este local es Almacén
+  almacenesQueRecibe    AlmacenTienda[] @relation("TiendaRecibe")    // Si este local es Tienda
+
+  @@map("local")
+}
+
+// Modelo para la relación Muchos a Muchos entre Almacenes y Tiendas
+model AlmacenTienda {
+  id               Int      @id @default(autoincrement())
+  id_almacen       Int
+  id_tienda        Int
+  fecha_asignacion DateTime @default(now())
+  
+  // Relaciones
+  almacen Local @relation("AlmacenAbastece", fields: [id_almacen], references: [id], onDelete: Cascade)
+  tienda  Local @relation("TiendaRecibe", fields: [id_tienda], references: [id], onDelete: Cascade)
+
+  @@unique([id_almacen, id_tienda]) // Un almacén no puede estar duplicado con la misma tienda
+  @@map("almacen_tienda")
+}

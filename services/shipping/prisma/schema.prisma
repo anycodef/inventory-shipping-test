@@ -1,0 +1,95 @@
+generator client {
+  provider = "prisma-client-js"
+}
+
+datasource db {
+  provider = "postgresql"
+  url      = env("DATABASE_URL")
+}
+
+model Envio {
+  id                   Int      @id @default(autoincrement())
+  id_stock_producto    Int
+  id_orden             Int
+  stock_reservado      Int
+  fecha_reserva        DateTime
+  fecha_expiracion     DateTime
+  id_estado            Int
+  id_carrier           Int?
+  tracking_number      String?
+  costo_envio          Float?
+  tiempo_estimado_dias Int?
+  tipo_envio           String   @default("DOMICILIO") // DOMICILIO, RECOJO_TIENDA
+  direccion_destino    Json?
+  peso_kg              Float?
+  carrier              Carrier? @relation(fields: [id_carrier], references: [id])
+  created_at           DateTime @default(now())
+  updated_at           DateTime @updatedAt
+
+  @@map("envio")
+}
+
+model Carrier {
+  id                   Int      @id @default(autoincrement())
+  nombre               String   @unique
+  codigo               String   @unique
+  activo               Boolean  @default(true)
+  tipo                 String   @default("NACIONAL") // NACIONAL, INTERNACIONAL, EXPRESS
+  logo_url             String?
+  
+  // Configuración de tarifas (para cálculos fake hasta tener API real)
+  tarifa_base          Float    @default(0)
+  tarifa_por_kg        Float    @default(0)
+  tarifa_por_km        Float?
+  tiempo_base_dias     Int      @default(3)
+  
+  // Para integración futura con API real
+  api_endpoint         String?
+  api_key_encrypted    String?
+  requiere_api         Boolean  @default(false)
+  
+  // Configuración adicional
+  cobertura_nacional   Boolean  @default(true)
+  cobertura_internacional Boolean @default(false)
+  peso_maximo_kg       Float?
+  
+  envios               Envio[]
+  created_at           DateTime @default(now())
+  updated_at           DateTime @updatedAt
+
+  @@map("carrier")
+}
+
+model Cotizacion {
+  id                   String   @id @default(cuid())
+  
+  // Datos de origen y destino
+  origen_lat           Float?
+  origen_lng           Float?
+  origen_direccion     String?
+  destino_lat          Float?
+  destino_lng          Float?
+  destino_direccion    String?
+  distancia_km         Float?
+  
+  // Datos del paquete
+  peso_kg              Float?
+  dimensiones          Json?    // {largo, ancho, alto}
+  valor_declarado      Float?
+  
+  // Tipo de envío
+  tipo_envio           String   // DOMICILIO, RECOJO_TIENDA
+  
+  // Resultado de cotización
+  carrier_id           Int?
+  carrier_nombre       String?
+  costo_envio          Float
+  tiempo_estimado_dias Int
+  fecha_entrega_estimada DateTime?
+  
+  // Metadata
+  cotizacion_valida_hasta DateTime
+  created_at           DateTime @default(now())
+
+  @@map("cotizacion")
+}

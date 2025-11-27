@@ -1,0 +1,42 @@
+generator client {
+  provider = "prisma-client-js"
+}
+
+datasource db {
+  provider = "postgresql"
+  url      = env("DATABASE_URL")
+}
+
+// Modelo para gestionar los estados de las reservas
+model EstadoReserva {
+  id          Int       @id @default(autoincrement())
+  nombre      String    @unique @db.VarChar(100)
+  descripcion String?   @db.Text
+  reservas    Reserva[]
+
+  @@map("estado_reserva")
+}
+
+// Modelo para gestionar las reservas de stock de productos
+model Reserva {
+  id                Int           @id @default(autoincrement())
+  id_stock_producto Int           // Foreign key from external inventory API
+  id_orden          Int           // Foreign key from external order API
+  stock_reservado   Int
+  fecha_reserva     DateTime      @default(now())
+  fecha_expiracion  DateTime
+  id_estado         Int
+  estado            EstadoReserva @relation(fields: [id_estado], references: [id])
+  
+  // Información de envío
+  tipo_envio        String        @default("DOMICILIO") @db.VarChar(20) // DOMICILIO, RECOJO_TIENDA
+  id_tienda         Int?          // Para recojo en tienda (opcional)
+  id_carrier        Int?          // Para envío a domicilio (opcional)
+  
+  // Datos de envío a domicilio (temporales hasta que se confirme el pago)
+  direccion_envio   String?       @db.Text // Dirección completa de envío
+  latitud_destino   Decimal?      @db.Decimal(10, 8) // Latitud del destino
+  longitud_destino  Decimal?      @db.Decimal(11, 8) // Longitud del destino
+
+  @@map("reserva")
+}
