@@ -30,10 +30,12 @@
     "node-cron": "^3.0.3"
   },
   "devDependencies": {
-    "nodemon": "^3.x",
-    "prisma": "^5.x",
+    "@testing-library/jest-dom": "^6.x",
     "eslint": "^8.x",
     "jest": "^29.x",
-    "@testing-library/jest-dom": "^6.x"
+    "jest-mock-extended": "^4.0.0",
+    "nodemon": "^3.x",
+    "prisma": "^5.x",
+    "supertest": "^7.1.4"
   }
 }
